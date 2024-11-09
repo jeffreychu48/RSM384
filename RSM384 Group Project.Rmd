@@ -1,11 +1,11 @@
 ---
 title: "RSM 384 Group Project - NBA Defense and Size"
-author: Jeffrey Chu
+author: AliReza Rezvan, Melody Ashgriz, Jacob Wright, Jeffrey Chu, Tony Wang
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
 ```
 
 ```{r, include = FALSE}
@@ -34,6 +34,7 @@ nba.combine <- read.csv(text = url)
 nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
 nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
+colnames(nba.combine)[1] = "PLAYER"
 ```
 
 **1996-2024 NBA Individual Player Advanced Defensive Stats**
@@ -43,22 +44,22 @@ url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/
 nba.9624.player.adv.def <- read.csv(text = url)
 ```
 
-*Creating a Statistical Minimum (Total Minutes > 1500)*
-(And removing Outliers)
+*Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers*
+
 ```{r}
 nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
   mutate(GP = as.numeric(GP), MIN = as.numeric(MIN), DEFRTG = as.numeric(DEFRTG)) %>%
   mutate(TOTALMIN = GP*MIN, TOTALMIN = as.numeric (TOTALMIN)) %>% 
   filter(TOTALMIN > 1500, YEAR < "2024", !PLAYER == "Aaron McKie", !PLAYER == "A.C. Green")
- 
 ```
 
+**Merging the Two Datasets**
 
+```{r}
+nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
+```
 
-
-
-
-
+## GLM Model
 
 ## Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics
 
@@ -67,16 +68,17 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 ```{r}
 url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/main/2023-2024%20NBA%20Player%20Advanced%20Defensive%20Stats.csv")
 nba.2324.player.adv.def <- read.csv(text = url)
+colnames(nba.2324.player.adv.def)[1] = "PLAYER"
 ```
 
 **Merging the Two Datasets**
 
 ```{r}
-nba.2324.merged <- nba.2324.player.adv.def %>% merge(nba.combine, by = "Player", all = FALSE)
+nba.2324.merged <- nba.2324.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
 ```
 
 **Remove N/A variables from dataset**
 
 ```{r}
-nba.2324.merged <- na.omit(nba.2324.combined)
+nba.2324.merged <- na.omit(nba.2324.merged)
 ```
