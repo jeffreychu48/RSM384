@@ -24,15 +24,16 @@ library(stats) #for LOESS
 library(nnet) #for Multinomial logit
 ```
 
-Datasets used:
+## Merging NBA Draft Combine Data and 1996-2024 Advanced Defence Statistics
 
 **NBA Combine (2000-2024)**
 
 ```{r}
 url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/main/NBA_draft_combine.csv")
-nba.combine.raw <- read.csv(text = url)
-nba.combine.raw <- separate(nba.combine.raw, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
-nba.combine.raw$Player <- paste(nba.combine.raw$`First Name`, nba.combine.raw$`Last Name`, sep = " ")
+nba.combine <- read.csv(text = url)
+nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
+nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
+nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
 ```
 
 **1996-2024 NBA Individual Player Advanced Defensive Stats**
@@ -42,12 +43,24 @@ url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/
 nba.9624.player.adv.def <- read.csv(text = url)
 ```
 
+*Creating a Statistical Minimum (Total Minutes > 1500)*
+(And removing Outliers)
 ```{r}
 nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
-  mutate(GP = as.numeric(GP)) %>%
-  filter(GP >= 20, YEAR < "2024")
+  mutate(GP = as.numeric(GP), MIN = as.numeric(MIN), DEFRTG = as.numeric(DEFRTG)) %>%
+  mutate(TOTALMIN = GP*MIN, TOTALMIN = as.numeric (TOTALMIN)) %>% 
+  filter(TOTALMIN > 1500, YEAR < "2024", !PLAYER == "Aaron McKie", !PLAYER == "A.C. Green")
+ 
 ```
 
+
+
+
+
+
+
+
+## Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics
 
 **2023-2024 NBA Individual Player Advanced Defensive Stats**
 
@@ -59,15 +72,11 @@ nba.2324.player.adv.def <- read.csv(text = url)
 **Merging the Two Datasets**
 
 ```{r}
-nba.combine.filtered <- nba.combine.raw %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
-```
-
-```{r}
-nba.2324.combined <- nba.2324.player.adv.def %>% merge(nba.combine.filtered, by = "Player", all = FALSE)
+nba.2324.merged <- nba.2324.player.adv.def %>% merge(nba.combine, by = "Player", all = FALSE)
 ```
 
 **Remove N/A variables from dataset**
 
 ```{r}
-nba.2324.combined <- na.omit(nba.2324.combined)
+nba.2324.merged <- na.omit(nba.2324.combined)
 ```
