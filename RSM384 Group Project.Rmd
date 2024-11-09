@@ -61,6 +61,18 @@ nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER",
 
 ## GLM Model
 
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
 ## Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics
 
 **2023-2024 NBA Individual Player Advanced Defensive Stats**
