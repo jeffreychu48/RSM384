@@ -83,6 +83,16 @@ nba.2324.player.adv.def <- read.csv(text = url)
 colnames(nba.2324.player.adv.def)[1] = "PLAYER"
 ```
 
+*Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers*
+
+```{r}
+nba.2324.player.adv.def <- nba.2324.player.adv.def %>%
+  mutate(GP = as.numeric(GP), MIN = as.numeric(MIN), DEFRTG = as.numeric(DEFRTG)) %>%
+  mutate(TOTALMIN = GP*MIN, TOTALMIN = as.numeric (TOTALMIN)) %>% 
+  filter(TOTALMIN > 1500)
+```
+
+
 **Merging the Two Datasets**
 
 ```{r}
