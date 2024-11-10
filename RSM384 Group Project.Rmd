@@ -33,6 +33,8 @@ url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/
 nba.combine <- read.csv(text = url)
 nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
+nba.combine <- nba.combine %>%
+  mutate(WGT = as.numeric(WGT))
 nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
 colnames(nba.combine)[1] = "PLAYER"
 ```
@@ -57,12 +59,26 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 
 ```{r}
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
+
+#removing N/A variables from data
+nba.9624.merged <- na.omit(nba.9624.merged)   
 ```
 
 ## GLM Model
 
 ```{r}
+#top and bottom 10% of defenders 
+top_10_def <- quantile(nba.9624.merged$DEFRTG, 0.9,)
+bottom_10_def <- quantile(nba.9624.merged$DEFRTG, 0.1,)
 
+## creating new variables to the dataset 
+nba.9624.merged <- nba.9624.merged %>%
+          mutate(DEFNDR = ifelse(DEFRTG>mean(DEFRTG), 1, 0), ELITE = DEFRTG>=top_10_def, TERRIBLE = DEFRTG<=bottom_10_def)
+
+#logistic regression
+fit.1 <- glm(DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + ELITE + TERRIBLE, data = nba.9624.merged, family = "binomial")    
+
+summary(fit.1)
 ```
 
 
