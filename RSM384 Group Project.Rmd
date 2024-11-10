@@ -159,23 +159,31 @@ summary(fit.2)
 
 **2023-2024 NBA Individual Player Advanced Defensive Stats**
 
-```{r}
-url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/main/2023-2024%20NBA%20Player%20Advanced%20Defensive%20Stats.csv")
-nba.2324.player.adv.def <- read.csv(text = url)
-colnames(nba.2324.player.adv.def)[1] = "PLAYER"
-```
+## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
 
-[Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers]{.underline}
+**Average (ALIREZA):**
+All Players, Not Top 10
 
-```{r}
-nba.2324.player.adv.def <- nba.2324.player.adv.def %>%
-  mutate(GP = as.numeric(GP), MIN = as.numeric(MIN), DEFRTG = as.numeric(DEFRTG)) %>%
-  mutate(TOTALMIN = GP*MIN, TOTALMIN = as.numeric (TOTALMIN)) %>% 
-  filter(TOTALMIN > 1500)
-```
+Time Series:
 
-**Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics**
+Height
 
-```{r}
-nba.2324.merged <- nba.2324.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
-```
+BAR
+
+PAN
+
+LPVERT
+
+
+
+**Top 10 Defenders (JEFFREY):**
+
+Time Series:
+
+Height
+
+BAR
+
+PAN
+
+LPVERT
