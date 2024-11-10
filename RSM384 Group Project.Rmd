@@ -106,6 +106,44 @@ fit.bad <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.lo
 summary(fit.bad)
 ```
 
+**Scatterplots**
+[Above Average Defenders vs PAN]{.underline}
+```{r}
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_defrtg = fitted(fit.average)) 
+
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(above_avg_defrtg = ABOVE_DEFNDR - expected_defrtg)
+
+##plot
+ggplot(nba.9624.logit, aes(PAN, above_avg_defrtg, color=HGT)) + geom_point()
+```
+
+[Elite Defenders vs BAR]{.underline}
+```{r}
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_defrtg_elite = fitted(fit.elite)) 
+
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(above_elite_defrtg = ELITE - expected_defrtg_elite)
+
+##plot 
+ggplot(nba.9624.logit, aes(BAR, above_elite_defrtg, color=HGT)) + geom_point()
+```
+
+[Bad Defenders vs BAR]{.underline}
+```{r}
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_defrtg_bad = fitted(fit.bad)) 
+
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(above_bad_defrtg = BAD - expected_defrtg_bad)
+
+##plot
+ggplot(nba.9624.logit, aes(PAN, above_bad_defrtg, color=HGT)) + geom_point()
+```
+
+
 ## Part 2: How does Physical Attributes correlate with Defensive Rating?
 ### Average (ALIREZA):
 
