@@ -65,7 +65,48 @@ nba.9624.logit <- na.omit(nba.9624.merged)
 ```
 
 ## Part 1: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
+### GLM Model
 
+[Setup: Creating New Measures for Top and Bottom 10% of defenders]{.underline}
+
+```{r}
+#top and bottom 10% of defenders 
+top_10_def <- quantile(nba.9624.logit$DEFRTG, 0.1,)
+bottom_10_def <- quantile(nba.9624.logit$DEFRTG, 0.9,)
+
+## creating new variables to the dataset 
+nba.9624.logit <- nba.9624.logit %>%
+          mutate(DEFNDR = ifelse(DEFRTG<mean(DEFRTG), 1, 0), ELITE = ifelse(DEFRTG<=top_10_def, 1, 0), BAD = ifelse(DEFRTG>=bottom_10_def, 1, 0))
+```
+
+**Logistic Regression (GLM)**
+
+*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
+
+[Elite Defenders]{.underline}
+```{r}
+fit.elite <- glm(DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.elite)
+```
+
+[Above Average Defenders]{.underline}
+```{r}
+#logistic regression
+fit.average <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.average)
+```
+
+[Bad Defenders]{.underline}
+```{r}
+#logistic regression
+fit.bad <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.bad)
+```
+
+## Part 2: How does Physical Attributes correlate with Defensive Rating?
 ### Average (ALIREZA):
 
 All Players, Not Top 10
@@ -92,48 +133,4 @@ PAN
 
 LPVERT
 
-## Part 2: How does Physical Attributes correlate with Defensive Rating?
 
-### GLM Model
-
-[Setup: Creating New Measures for Top and Bottom 10% of defenders]{.underline}
-
-```{r}
-#top and bottom 10% of defenders 
-top_10_def <- quantile(nba.9624.logit$DEFRTG, 0.1,)
-bottom_10_def <- quantile(nba.9624.logit$DEFRTG, 0.9,)
-
-## creating new variables to the dataset 
-nba.9624.logit <- nba.9624.logit %>%
-          mutate(DEFNDR = ifelse(DEFRTG<mean(DEFRTG), 1, 0), ELITE = ifelse(DEFRTG<=top_10_def, 1, 0), TERRIBLE = ifelse(DEFRTG>=bottom_10_def, 1, 0))
-```
-
-**Logistic Regression (GLM)**
-
-*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
-
-[Elite Defenders]{.underline}
-
-```{r}
-fit.elite <- glm(DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
-
-summary(fit.elite)
-```
-
-[Above Average Defenders]{.underline}
-
-```{r}
-#logistic regression
-fit.average <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
-
-summary(fit.average)
-```
-
-[Bad Defenders]{.underline}
-
-```{r}
-#logistic regression
-fit.bad <- glm(TERRIBLE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
-
-summary(fit.bad)
-```
