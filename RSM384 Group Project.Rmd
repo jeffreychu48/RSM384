@@ -60,12 +60,15 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 ```{r}
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
 
-
 #removing N/A variables from data
 nba.9624.merged <- na.omit(nba.9624.merged)   
 ```
 
-## GLM Model
+## Part 1: How does Physical Attributes correlate with Defensive Rating?
+
+### GLM Model Setup
+
+[Creating New Measures: Top and bottom 10% of defenders]{.underline}
 ```{r}
 #top and bottom 10% of defenders 
 top_10_def <- quantile(nba.9624.merged$DEFRTG, 0.1,)
@@ -76,12 +79,18 @@ nba.9624.merged <- nba.9624.merged %>%
           mutate(DEFNDR = ifelse(DEFRTG<mean(DEFRTG), 1, 0), ELITE = ifelse(DEFRTG<=top_10_def, 1, 0), TERRIBLE = ifelse(DEFRTG>=bottom_10_def, 1, 0))
 ```
 
+**Logistic Regression**
+
+*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
+
+[Elite Defenders]{.underline}
 ```{r}
 fit.1 <- glm(DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
 
 summary(fit.1)
 ```
 
+[Above Average Defenders]{.underline}
 ```{r}
 #logistic regression
 fit.2 <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
@@ -89,6 +98,7 @@ fit.2 <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.me
 summary(fit.1)
 ```
 
+[Bad Defenders]{.underline}
 ```{r}
 #logistic regression
 fit.3 <- glm(TERRIBLE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
