@@ -64,7 +64,42 @@ nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER",
 nba.9624.merged <- na.omit(nba.9624.merged)   
 ```
 
-## Part 1: How does Physical Attributes correlate with Defensive Rating?
+
+## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
+
+**2023-2024 NBA Individual Player Advanced Defensive Stats**
+
+## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
+
+**Average (ALIREZA):**
+All Players, Not Top 10
+
+Time Series:
+
+Height
+
+BAR
+
+PAN
+
+LPVERT
+
+
+
+**Top 10 Defenders (JEFFREY):**
+
+Time Series:
+
+Height
+
+BAR
+
+PAN
+
+LPVERT
+
+
+## Part 2: How does Physical Attributes correlate with Defensive Rating?
 
 ### GLM Model Setup
 
@@ -105,85 +140,3 @@ fit.3 <- glm(TERRIBLE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624
 
 summary(fit.1)
 ```
-```
-
-## Part 1: How does Physical Attributes correlate with Defensive Rating?
-
-### GLM Model Setup
-
-[Creating New Measures: Top and bottom 10% of defenders]{.underline}
-
-```{r}
- top_10_def <- quantile(nba.9624.merged$DEFRTG, 0.9,)
-bottom_10_def <- quantile(nba.9624.merged$DEFRTG, 0.1,)
-```
-
-[Creating New Measures: Elite, Above Average, and Bad Defenders]{.underline}
-
-```{r}
-nba.9624.merged <- nba.9624.merged %>% mutate(ELITE = ifelse(DEFRTG<bottom_10_def, 1, 0))
-nba.9624.merged <- nba.9624.merged %>% mutate(ABOVEAVERAGE = ifelse(DEFRTG<mean(DEFRTG), 1, 0)) 
-nba.9624.merged <- nba.9624.merged %>% mutate(BAD = ifelse (DEFRTG>top_10_def, 1,0))
-```
-
-**Logistic Regression**
-
-*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
-
-```{r}
-nba.9624.logit <- nba.9624.merged %>% select (PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT, LANE, ELITE, ABOVEAVERAGE, BAD)
-```
-
-[Elite Defenders]{.underline}
-
-```{r}
-fit.2 <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
-summary(fit.2)
-```
-
-[Above Average Defenders]{.underline}
-
-```{r}
-fit.1 <- glm(ABOVEAVERAGE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
-summary(fit.1)
-```
-
-[Bad Defenders]{.underline}
-
-```{r}
-fit.2 <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
-summary(fit.2)
-```
-
-## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
-
-**2023-2024 NBA Individual Player Advanced Defensive Stats**
-
-## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
-
-**Average (ALIREZA):**
-All Players, Not Top 10
-
-Time Series:
-
-Height
-
-BAR
-
-PAN
-
-LPVERT
-
-
-
-**Top 10 Defenders (JEFFREY):**
-
-Time Series:
-
-Height
-
-BAR
-
-PAN
-
-LPVERT
