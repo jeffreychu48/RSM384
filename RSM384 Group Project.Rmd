@@ -24,7 +24,7 @@ library(stats) #for LOESS
 library(nnet) #for Multinomial logit
 ```
 
-## Merging NBA Draft Combine Data and 1996-2024 Advanced Defence Statistics
+### Merging NBA Draft Combine Data and 1996-2024 Advanced Defence Statistics
 
 **NBA Combine (2000-2024)**
 
@@ -33,6 +33,8 @@ url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/
 nba.combine <- read.csv(text = url)
 nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
+nba.combine <- nba.combine %>%
+  mutate(WGT = as.numeric(WGT))
 nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
 colnames(nba.combine)[1] = "PLAYER"
 ```
@@ -44,7 +46,7 @@ url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/
 nba.9624.player.adv.def <- read.csv(text = url)
 ```
 
-*Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers*
+[Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers]{.underline}
 
 ```{r}
 nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
@@ -59,21 +61,55 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
 ```
 
-## GLM Model
+## Part 1: How does Physical Attributes correlate with Defensive Rating?
+
+### GLM Model Setup
+
+[Creating New Measures: Top and bottom 10% of defenders]{.underline}
 
 ```{r}
-
+ top_10_def <- quantile(nba.9624.merged$DEFRTG, 0.9,)
+bottom_10_def <- quantile(nba.9624.merged$DEFRTG, 0.1,)
 ```
 
+[Creating New Measures: Elite, Above Average, and Bad Defenders]{.underline}
 
+```{r}
+nba.9624.merged <- nba.9624.merged %>% mutate(ELITE = ifelse(DEFRTG<bottom_10_def, 1, 0))
+nba.9624.merged <- nba.9624.merged %>% mutate(ABOVEAVERAGE = ifelse(DEFRTG<mean(DEFRTG), 1, 0)) 
+nba.9624.merged <- nba.9624.merged %>% mutate(BAD = ifelse (DEFRTG>top_10_def, 1,0))
+```
 
+**Logistic Regression**
 
+*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
 
+```{r}
+nba.9624.logit <- nba.9624.merged %>% select (PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT, LANE, ELITE, ABOVEAVERAGE, BAD)
+```
 
+[Elite Defenders]{.underline}
 
+```{r}
+fit.2 <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
+summary(fit.2)
+```
 
+[Above Average Defenders]{.underline}
 
-## Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics
+```{r}
+fit.1 <- glm(ABOVEAVERAGE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
+summary(fit.1)
+```
+
+[Bad Defenders]{.underline}
+
+```{r}
+fit.2 <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT + LANE, data = nba.9624.logit, family = "binomial")
+summary(fit.2)
+```
+
+## Part 2: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
 
 **2023-2024 NBA Individual Player Advanced Defensive Stats**
 
@@ -83,7 +119,7 @@ nba.2324.player.adv.def <- read.csv(text = url)
 colnames(nba.2324.player.adv.def)[1] = "PLAYER"
 ```
 
-*Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers*
+[Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers]{.underline}
 
 ```{r}
 nba.2324.player.adv.def <- nba.2324.player.adv.def %>%
@@ -92,15 +128,8 @@ nba.2324.player.adv.def <- nba.2324.player.adv.def %>%
   filter(TOTALMIN > 1500)
 ```
 
-
-**Merging the Two Datasets**
+**Merging NBA Draft Combine Data and 2023-2024 Advanced Defence Statistics**
 
 ```{r}
 nba.2324.merged <- nba.2324.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
-```
-
-**Remove N/A variables from dataset**
-
-```{r}
-nba.2324.merged <- na.omit(nba.2324.merged)
 ```
