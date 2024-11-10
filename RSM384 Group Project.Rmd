@@ -117,12 +117,6 @@ nba.9624.logit <- nba.9624.logit %>%
 
 ##plot of above average defenders vs PAN
 ggplot(nba.9624.logit, aes(PAN, above_avg_defrtg, color=HGT)) + geom_point()
-
-##plot of above average defenders vs HGT
-ggplot(nba.9624.logit, aes(HGT, above_avg_defrtg, color=HGT)) + geom_point()
-
-##plot of above average defenders vs LPVERT
-ggplot(nba.9624.logit, aes(LPVERT, above_avg_defrtg, color=HGT)) + geom_point()
 ```
 
 [Elite Defenders]{.underline}
