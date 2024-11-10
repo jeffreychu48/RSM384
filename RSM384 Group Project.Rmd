@@ -59,6 +59,42 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 
 ```{r}
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
+
+
+#removing N/A variables from data
+nba.9624.merged <- na.omit(nba.9624.merged)   
+```
+
+## GLM Model
+```{r}
+#top and bottom 10% of defenders 
+top_10_def <- quantile(nba.9624.merged$DEFRTG, 0.1,)
+bottom_10_def <- quantile(nba.9624.merged$DEFRTG, 0.9,)
+
+## creating new variables to the dataset 
+nba.9624.merged <- nba.9624.merged %>%
+          mutate(DEFNDR = ifelse(DEFRTG<mean(DEFRTG), 1, 0), ELITE = ifelse(DEFRTG<=top_10_def, 1, 0), TERRIBLE = ifelse(DEFRTG>=bottom_10_def, 1, 0))
+```
+
+```{r}
+fit.1 <- glm(DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
+
+summary(fit.1)
+```
+
+```{r}
+#logistic regression
+fit.2 <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
+
+summary(fit.1)
+```
+
+```{r}
+#logistic regression
+fit.3 <- glm(TERRIBLE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.merged, family = "binomial")    
+
+summary(fit.1)
+```
 ```
 
 ## Part 1: How does Physical Attributes correlate with Defensive Rating?
