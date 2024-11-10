@@ -107,7 +107,7 @@ summary(fit.bad)
 ```
 
 **Scatterplots**
-[Above Average Defenders vs PAN]{.underline}
+[Above Average Defenders]{.underline}
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_defrtg = fitted(fit.average)) 
@@ -115,11 +115,17 @@ nba.9624.logit <- nba.9624.logit %>%
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(above_avg_defrtg = ABOVE_DEFNDR - expected_defrtg)
 
-##plot
+##plot of above average defenders vs PAN
 ggplot(nba.9624.logit, aes(PAN, above_avg_defrtg, color=HGT)) + geom_point()
+
+##plot of above average defenders vs HGT
+ggplot(nba.9624.logit, aes(HGT, above_avg_defrtg, color=HGT)) + geom_point()
+
+##plot of above average defenders vs LPVERT
+ggplot(nba.9624.logit, aes(LPVERT, above_avg_defrtg, color=HGT)) + geom_point()
 ```
 
-[Elite Defenders vs BAR]{.underline}
+[Elite Defenders]{.underline}
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_defrtg_elite = fitted(fit.elite)) 
@@ -127,11 +133,11 @@ nba.9624.logit <- nba.9624.logit %>%
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(above_elite_defrtg = ELITE - expected_defrtg_elite)
 
-##plot 
+##plot of elite defenders vs BAR
 ggplot(nba.9624.logit, aes(BAR, above_elite_defrtg, color=HGT)) + geom_point()
 ```
 
-[Bad Defenders vs BAR]{.underline}
+[Bad Defenders]{.underline}
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_defrtg_bad = fitted(fit.bad)) 
@@ -139,7 +145,7 @@ nba.9624.logit <- nba.9624.logit %>%
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(above_bad_defrtg = BAD - expected_defrtg_bad)
 
-##plot
+##plot of bad defenders vs PAN
 ggplot(nba.9624.logit, aes(PAN, above_bad_defrtg, color=HGT)) + geom_point()
 ```
 
