@@ -61,7 +61,8 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
 
 #removing N/A variables from data
-nba.9624.logit <- na.omit(nba.9624.merged)   
+nba.9624.logit <- na.omit(nba.9624.merged)
+nba.9624.logit <- nba.9624.logit %>% select(PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT)
 ```
 
 ## Part 1: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
