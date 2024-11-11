@@ -35,7 +35,7 @@ nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First 
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
 nba.combine <- nba.combine %>%
   mutate(WGT = as.numeric(WGT))
-nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
+nba.combine <- nba.combine %>% select (Player, YEAR, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
 colnames(nba.combine)[1] = "PLAYER"
 ```
 
@@ -151,12 +151,11 @@ ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = cat
   scale_y_continuous(limits = c(0, 1)) +
   scale_color_manual(
     values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
   scale_shape_manual(
     values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
   labs(x = "PAN", y = "Probability", color = "Defender Category", shape = "Defender Category") +
-  theme_minimal() + 
   ggtitle("Probability of Defender Type based on Hand Size (PAN)")
 ```
 
@@ -169,16 +168,13 @@ ggplot(nba.9624.unpivoted, aes(x = BAR, y = value, color = category, shape = cat
   scale_y_continuous(limits = c(0, 1)) +
   scale_color_manual(
     values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite*", "expected_bad" = "Bad")) +
   scale_shape_manual(
     values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite*", "expected_bad" = "Bad")) +
   labs(x = "BAR", y = "Probability", color = "Defender Category", shape = "Defender Category") +
-  theme_minimal() + 
   ggtitle("Probability of Defender Type based on Plus Wingspan (BAR)")
 ```
-
-
 
 ## Part 2: How does Physical Attributes correlate with Defensive Rating?
 
@@ -198,12 +194,58 @@ LPVERT
 
 ### Top 10 Defenders (JEFFREY):
 
-Time Series:
+**Creating a Time Series measure of the Physical Attributes of the Top 10 Defenders each year (2003-2023):**
 
-Height
+```{r}
+top.10.defrtg.per.year <- nba.9624.merged %>%
+  mutate(YEAR = as.numeric(YEAR)) %>% 
+  filter(YEAR >= 2003) %>% 
+  group_by(YEAR) %>%
+  arrange(desc(-DEFRTG)) %>%
+  slice_head(n = 10) %>%
+  ungroup() 
 
-BAR
+top.10.defrtg.per.year %>% 
+  select(PLAYER, YEAR, DEFRTG, HGT, WGT, BAR) %>% 
+  arrange(desc(YEAR)) %>% 
+  head(10)
+```
 
-PAN
+[Height]{.underline}
 
-LPVERT
+```{r}
+ggplot(top.10.defrtg.per.year, aes(x = YEAR, y = HGT, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(68, 90)) + 
+  geom_point() 
+```
+
+[BAR]{.underline}
+
+```{r}
+ggplot(top.10.defrtg.per.year, aes(x = YEAR, y = BAR, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(0.95, 1.15)) +   
+  geom_point() 
+```
+
+[PAN]{.underline}
+
+(Note: Hand Measurements only started in 2010)
+
+```{r}
+ggplot(top.10.defrtg.per.year, aes(x = YEAR, y = PAN, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(60, 120)) + 
+  scale_x_continuous(limits = c(2010, 2024)) +
+  geom_point() 
+```
+
+[LPVERT]{.underline}
+
+```{r}
+ggplot(top.10.defrtg.per.year, aes(x = YEAR, y = LPVERT, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+    scale_y_continuous(limits = c(25, 45)) + 
+  geom_point() 
+```
