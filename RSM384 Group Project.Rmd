@@ -35,7 +35,7 @@ nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First 
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
 nba.combine <- nba.combine %>%
   mutate(WGT = as.numeric(WGT))
-nba.combine <- nba.combine %>% select (Player, YEAR, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
+nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
 colnames(nba.combine)[1] = "PLAYER"
 ```
 
