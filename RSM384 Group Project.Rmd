@@ -61,11 +61,12 @@ nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
 nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
 
 #removing N/A variables from data
-nba.9624.logit <- na.omit(nba.9624.merged)
+nba.9624.logit <- na.omit(nba.9624.merged)  
 nba.9624.logit <- nba.9624.logit %>% select(PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT)
 ```
 
 ## Part 1: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
+
 ### GLM Model
 
 [Setup: Creating New Measures for Top and Bottom 10% of defenders]{.underline}
@@ -85,67 +86,101 @@ nba.9624.logit <- nba.9624.logit %>%
 *Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
 
 [Above Average Defenders]{.underline}
+
 ```{r}
+#Logistic regression
 fit.average <- glm(ABOVE_DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
 
 summary(fit.average)
 ```
 
 [Elite Defenders]{.underline}
+
 ```{r}
-#logistic regression
+#Logistic regression
 fit.elite <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
 
 summary(fit.elite)
 ```
 
 [Bad Defenders]{.underline}
+
 ```{r}
-#logistic regression
+#Logistic regression
 fit.bad <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
 
 summary(fit.bad)
 ```
 
-**Scatterplots**
+### Scatterplots
+
+**Scatterplot Setup**
+
 [Above Average Defenders]{.underline}
+
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
-  mutate(expected_defrtg = fitted(fit.average)) 
-
-nba.9624.logit <- nba.9624.logit %>% 
-  mutate(above_avg_defrtg = ABOVE_DEFNDR - expected_defrtg)
-
-##plot of above average defenders vs PAN
-ggplot(nba.9624.logit, aes(PAN, above_avg_defrtg, color=HGT)) + geom_point()
+  mutate(expected_aboveavg = fitted(fit.average)) 
 ```
 
 [Elite Defenders]{.underline}
+
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
-  mutate(expected_defrtg_elite = fitted(fit.elite)) 
-
-nba.9624.logit <- nba.9624.logit %>% 
-  mutate(above_elite_defrtg = ELITE - expected_defrtg_elite)
-
-##plot of elite defenders vs BAR
-ggplot(nba.9624.logit, aes(BAR, above_elite_defrtg, color=HGT)) + geom_point()
+  mutate(expected_elite = fitted(fit.elite)) 
 ```
 
 [Bad Defenders]{.underline}
+
 ```{r}
 nba.9624.logit <- nba.9624.logit %>% 
-  mutate(expected_defrtg_bad = fitted(fit.bad)) 
-
-nba.9624.logit <- nba.9624.logit %>% 
-  mutate(above_bad_defrtg = BAD - expected_defrtg_bad)
-
-##plot of bad defenders vs PAN
-ggplot(nba.9624.logit, aes(PAN, above_bad_defrtg, color=HGT)) + geom_point()
+  mutate(expected_bad = fitted(fit.bad)) 
 ```
 
+**Scatterplots: Defence and Hand Size (PAN)**
+
+```{r}
+# Reshape data into unpivoted format
+nba.9624.unpivoted <- nba.9624.logit %>%
+  pivot_longer(cols = starts_with("expected_"), 
+               names_to = "category", 
+               values_to = "value")
+
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  labs(x = "PAN", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() + 
+  ggtitle("Probability of Defender Type based on Hand Size (PAN)")
+```
+
+**Scatterplots: Defence and Plus Wingspan (BAR)**
+
+```{r}
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = BAR, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  labs(x = "BAR", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() + 
+  ggtitle("Probability of Defender Type based on Plus Wingspan (BAR)")
+```
 
 ## Part 2: How does Physical Attributes correlate with Defensive Rating?
+
 ### Average (ALIREZA):
 
 All Players, Not Top 10
@@ -171,5 +206,3 @@ BAR
 PAN
 
 LPVERT
-
-
