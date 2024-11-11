@@ -116,36 +116,35 @@ summary(fit.bad)
 
 **Scatterplot Setup**
 
-[Above Average Defenders]{.underline}
-
 ```{r}
+#Probability of being an Above Average Defender
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_aboveavg = fitted(fit.average)) 
 ```
 
-[Elite Defenders]{.underline}
-
 ```{r}
+#Probability of being an Elite Defender
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_elite = fitted(fit.elite)) 
 ```
 
-[Bad Defenders]{.underline}
-
 ```{r}
+#Probability of being an Bad Defender
 nba.9624.logit <- nba.9624.logit %>% 
   mutate(expected_bad = fitted(fit.bad)) 
+```
+
+```{r}
+# Reshape data into Unpivoted format
+nba.9624.unpivoted <- nba.9624.logit %>%
+  pivot_longer(cols = starts_with("expected_"), 
+               names_to = "category", 
+               values_to = "value")
 ```
 
 **Scatterplots: Defence and Hand Size (PAN)**
 
 ```{r}
-# Reshape data into unpivoted format
-nba.9624.unpivoted <- nba.9624.logit %>%
-  pivot_longer(cols = starts_with("expected_"), 
-               names_to = "category", 
-               values_to = "value")
-
 # Create scaterplot
 ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = category)) +
   geom_point() +
@@ -178,6 +177,8 @@ ggplot(nba.9624.unpivoted, aes(x = BAR, y = value, color = category, shape = cat
   theme_minimal() + 
   ggtitle("Probability of Defender Type based on Plus Wingspan (BAR)")
 ```
+
+
 
 ## Part 2: How does Physical Attributes correlate with Defensive Rating?
 
