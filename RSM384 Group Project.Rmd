@@ -35,7 +35,7 @@ nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First 
 nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
 nba.combine <- nba.combine %>%
   mutate(WGT = as.numeric(WGT))
-nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT, LANE)
+nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT)
 colnames(nba.combine)[1] = "PLAYER"
 ```
 
@@ -152,7 +152,7 @@ ggplot(nba.9624.unpivoted, aes(x = HGT, y = value, color = category, shape = cat
   scale_y_continuous(limits = c(0, 1)) +
   scale_color_manual(
     values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
+    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
   scale_shape_manual(
     values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
