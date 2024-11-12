@@ -65,7 +65,7 @@ nba.9624.logit <- na.omit(nba.9624.merged)
 nba.9624.logit <- nba.9624.logit %>% select(PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT)
 ```
 
-## Part 1: How has the emphasis on [physical attribute] for NBA’s Top Defenders been changing over time?
+## Part 1: How does Physical Attributes correlate with Defensive Rating?
 
 ### GLM Model
 
@@ -216,9 +216,9 @@ ggplot(nba.9624.unpivoted, aes(x = LPVERT, y = value, color = category, shape = 
   ggtitle("Probability of Defender Type based on Max Vertical (LPVERT)")
 ```
 
-## Part 2: How does Physical Attributes correlate with Defensive Rating?
+## Part 2: How has the emphasis on those Physical Attributes On Average and for the NBA’s Top Defenders been changing over time?
 
-### Average (ALIREZA):
+### Average:
 
 All Players, Not Top 10 % (2004 - 2023 except for PAN which is 2010 onwards).
 
@@ -254,6 +254,7 @@ library(ggplot2)
 ggplot(nba.height.trend, aes(x = YEAR, y = avg_HGT)) +
   geom_line(color = "blue") +
   geom_point(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
   labs(
     title = "Time Trend of Average Height of NBA Players",
     x = "Year",
@@ -269,6 +270,7 @@ nba.bar.trend <- nba.yearly.averages %>%
 ggplot(nba.bar.trend, aes(x = YEAR, y = avg_BAR)) +
   geom_line(color = "purple") +
   geom_point(color = "purple") +
+  geom_smooth(method = "lm", se = FALSE, color = "purple", linetype = "dashed") + 
   labs(
     title = "Time Trend of Average Wingspan-to-Height Ratio (BAR) of NBA Players",
     x = "Year",
@@ -285,6 +287,7 @@ nba.pan.trend <- nba.yearly.averages %>%
 ggplot(nba.pan.trend, aes(x = YEAR, y = avg_PAN)) +
   geom_line(color = "green") +
   geom_point(color = "green") +
+  geom_smooth(method = "lm", se = FALSE, color = "green", linetype = "dashed") + 
   labs(
     title = "Time Trend of Average Hand Size (PAN) of NBA Players",
     x = "Year",
@@ -301,6 +304,7 @@ nba.lpvert.trend <- nba.yearly.averages %>%
 ggplot(nba.lpvert.trend, aes(x = YEAR, y = avg_LPVERT)) +
   geom_line(color = "orange") +
   geom_point(color = "orange") +
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed") + 
   labs(
     title = "Time Trend of Average Max Vertical (LPVERT) of NBA Players",
     x = "Year",
@@ -310,7 +314,7 @@ ggplot(nba.lpvert.trend, aes(x = YEAR, y = avg_LPVERT)) +
 ```
 
 
-### NBA's Top Defenders (JEFFREY):
+### NBA's Top Defenders:
 
 **Creating a Time Series measure of the Physical Attributes of the Top 25 Defenders each year (2004-2023):**
 ```{r}
@@ -372,4 +376,37 @@ ggplot(nba.10percent, aes(x = YEAR, y = LPVERT, color = DEFRTG)) +
   geom_point() + 
   theme_minimal() +
   ggtitle("Time Trend of Max Vertical for the Top 10% of NBA Defenders")
+```
+
+### Invidiaul Defensive Rating:
+
+**Creating a Time Series measure of Average Individual Defensive Rating each year (2004-2023):**
+
+```{r}
+nba.avgdefrtg  <- nba.9624.player.adv.def %>%
+  group_by(YEAR) %>%
+  summarise(
+    avg_DEFRTG = mean(DEFRTG, na.rm = TRUE),
+      )
+
+nba.avgdefrtg <- nba.avgdefrtg %>%
+  filter(YEAR >= 2004)
+
+head(nba.avgdefrtg)
+```
+
+**Time Trend of Average Individual Defensive Rating:**
+```{r}
+library(ggplot2)
+
+ggplot(nba.avgdefrtg, aes(x = YEAR, y = avg_DEFRTG)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Defensive Rating of Individual NBA Players",
+    x = "Year",
+    y = "Average Individual Defensive Rating"
+  ) +
+  theme_minimal()
 ```
