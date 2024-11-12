@@ -142,24 +142,22 @@ nba.9624.unpivoted <- nba.9624.logit %>%
                values_to = "value")
 ```
 
-
-**Scatterplots: Defence and Height**
+**Scatterplots: Defence and Hand Size (PAN)**
 
 ```{r}
 # Create scaterplot
-ggplot(nba.9624.unpivoted, aes(x = HGT, y = value, color = category, shape = category)) +
+ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = category)) +
   geom_point() +
   scale_y_continuous(limits = c(0, 1)) +
   scale_color_manual(
     values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
   scale_shape_manual(
     values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
-    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
-  labs(x = "Height (inches)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
-  ggtitle("Probability of Defender Type based on Height (HGT)")
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
+  labs(x = "PAN", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  ggtitle("Probability of Defender Type based on Hand Size (PAN)")
 ```
-
 
 **Scatterplots: Defence and Plus Wingspan (BAR)**
 
@@ -174,61 +172,103 @@ ggplot(nba.9624.unpivoted, aes(x = BAR, y = value, color = category, shape = cat
   scale_shape_manual(
     values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
     labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite*", "expected_bad" = "Bad")) +
-  labs(x = "BAR (Wingspan / Height)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  labs(x = "BAR", y = "Probability", color = "Defender Category", shape = "Defender Category") +
   ggtitle("Probability of Defender Type based on Plus Wingspan (BAR)")
 ```
-
-**Scatterplots: Defence and Hand Size (PAN)**
-
-```{r}
-# Create scaterplot
-ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = category)) +
-  geom_point() +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_manual(
-    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
-  scale_shape_manual(
-    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
-    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
-  labs(x = "PAN (Hand Length in Inches * Hand Width in Inches)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
-  ggtitle("Probability of Defender Type based on Hand Size (PAN)")
-```
-
-
-**Scatterplots: Defence and Max Vertical**
-
-```{r}
-# Create scaterplot
-ggplot(nba.9624.unpivoted, aes(x = LPVERT, y = value, color = category, shape = category)) +
-  geom_point() +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_manual(
-    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
-    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
-  scale_shape_manual(
-    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
-    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
-  labs(x = "Max Vertical (inches)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
-  ggtitle("Probability of Defender Type based on Height (HGT)")
-```
-
 
 ## Part 2: How does Physical Attributes correlate with Defensive Rating?
 
 ### Average (ALIREZA):
 
-All Players, Not Top 10
+All Players, Not Top 10 % (2004 - 2023 except for PAN which is 2010 onwards).
 
-Time Series:
+Acquire non-top 10% players:
+```{r}
+nba.90percent <- nba.9624.merged %>%
+  group_by(YEAR) %>%
+  filter(DEFRTG > quantile(DEFRTG, 0.1, na.rm = TRUE)) %>%
+  ungroup()
+```
 
-Height
+Calculate yearly averages for the remaining 90% of players:
+```{r}
+nba.yearly.averages <- nba.90percent %>%
+  group_by(YEAR) %>%
+  summarise(
+    avg_HGT = mean(HGT, na.rm = TRUE),
+    avg_BAR = mean(BAR, na.rm = TRUE),
+    avg_PAN = if (all(is.na(PAN))) NA else mean(PAN, na.rm = TRUE),
+    avg_LPVERT = mean(LPVERT, na.rm = TRUE)
+  )
 
-BAR
+head(nba.yearly.averages)
+```
 
-PAN
+Trend of Average Height for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.height.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
 
-LPVERT
+library(ggplot2)
+
+ggplot(nba.height.trend, aes(x = YEAR, y = avg_HGT)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  labs(
+    title = "Trend of Average Height of NBA Players (Non-Top 10% Defenders) from 2004 Onward",
+    x = "Year",
+    y = "Average Height (avg_HGT)"
+  ) +
+  theme_minimal()
+```
+Trend of Average BAR for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.bar.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
+
+ggplot(nba.bar.trend, aes(x = YEAR, y = avg_BAR)) +
+  geom_line(color = "purple") +
+  geom_point(color = "purple") +
+  labs(
+    title = "Trend of Average Wingspan-to-Height Ratio (BAR) of NBA Players (Non-Top 10% Defenders) from 2004 Onward",
+    x = "Year",
+    y = "Average BAR"
+  ) +
+  theme_minimal()
+```
+
+Trend of Average PAN for Bottom 90% of players according to DEF RTG (Year 2010 onwards):
+```{r}
+nba.pan.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2010)
+
+ggplot(nba.pan.trend, aes(x = YEAR, y = avg_PAN)) +
+  geom_line(color = "green") +
+  geom_point(color = "green") +
+  labs(
+    title = "Trend of Average Hand Size (PAN) of NBA Players (Non-Top 10% Defenders) from 2010 Onward",
+    x = "Year",
+    y = "Average PAN"
+  ) +
+  theme_minimal()
+```
+
+Trend of Average LPVERT for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.lpvert.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
+
+ggplot(nba.lpvert.trend, aes(x = YEAR, y = avg_LPVERT)) +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  labs(
+    title = "Trend of Average Max Vertical (LPVERT) of NBA Players (Non-Top 10% Defenders) from 2004 Onward",
+    x = "Year",
+    y = "Average LPVERT"
+  ) +
+  theme_minimal()
+```
+
 
 ### Top Defenders (JEFFREY):
 
@@ -246,9 +286,8 @@ top.25.defrtg.per.year <- nba.9624.merged %>%
 top.25.defrtg.per.year %>% 
   select(PLAYER, YEAR, DEFRTG, HGT, WGT, BAR, PAN, LPVERT) %>% 
   arrange(desc(YEAR)) %>% 
-  head(10)
+  head(5)
 ```
-
 
 [20 Year "Height" Trend]{.underline}
 
@@ -292,4 +331,3 @@ ggplot(top.25.defrtg.per.year, aes(x = YEAR, y = LPVERT, color = DEFRTG)) +
   geom_point() + 
   ggtitle("Time Trend of Max Vertical for the NBA's Top 25 Defenders")
 ```
-
