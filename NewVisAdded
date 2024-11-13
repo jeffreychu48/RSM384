@@ -1,0 +1,503 @@
+---
+title: "RSM 384 Group Project - NBA Defense and Size"
+author: AliReza Rezvan, Melody Ashgriz, Jacob Wright, Jeffrey Chu, Tony Wang
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+```
+
+```{r, include = FALSE}
+install.packages("tidyverse")
+install.packages("RCurl")
+install.packages("corrplot")
+install.packages("dplyr")
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(RCurl)
+library(corrplot)
+library(dplyr)
+library(stats) #for LOESS
+library(nnet) #for Multinomial logit
+```
+
+## Data Collection: Merging NBA Draft Combine Data and 1996-2024 Advanced Defence Statistics
+
+**NBA Combine (2000-2024)**
+
+```{r}
+url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/main/NBA_draft_combine.csv")
+nba.combine <- read.csv(text = url)
+nba.combine <- separate(nba.combine, col = PLAYER, into = c("Last Name", "First Name"), sep = ", ")
+nba.combine$Player <- paste(nba.combine$`First Name`, nba.combine$`Last Name`, sep = " ")
+nba.combine <- nba.combine %>%
+  mutate(WGT = as.numeric(WGT))
+nba.combine <- nba.combine %>% select (Player, HGT, WGT, BAR, STNDRCH, PAN, LPVERT, SPRINT)
+colnames(nba.combine)[1] = "PLAYER"
+```
+
+**1996-2024 NBA Individual Player Advanced Defensive Stats**
+
+```{r}
+url <- getURL("https://raw.githubusercontent.com/jeffreychu48/RSM384/refs/heads/main/1996-2024%20NBA%20Player%20Advanced%20Defensive%20Stats.csv")
+nba.9624.player.adv.def <- read.csv(text = url)
+```
+
+[Creating a Statistical Minimum (Total Minutes \> 1500) and removing Outliers]{.underline}
+
+```{r}
+nba.9624.player.adv.def <- nba.9624.player.adv.def %>%
+  mutate(GP = as.numeric(GP), MIN = as.numeric(MIN), DEFRTG = as.numeric(DEFRTG)) %>%
+  mutate(TOTALMIN = GP*MIN, TOTALMIN = as.numeric (TOTALMIN)) %>% 
+  filter(TOTALMIN > 1500, YEAR < "2024", !PLAYER == "Aaron McKie", !PLAYER == "A.C. Green")
+```
+
+**Merging the Two Datasets**
+
+```{r}
+nba.9624.merged <- nba.9624.player.adv.def %>% merge(nba.combine, by = "PLAYER", all = FALSE)
+
+#removing N/A variables from data
+nba.9624.logit <- na.omit(nba.9624.merged)  
+nba.9624.logit <- nba.9624.logit %>% select(PLAYER, DEFRTG, HGT, WGT, BAR, PAN, LPVERT, SPRINT)
+```
+
+## Part 1: How does Physical Attributes correlate with Defensive Rating?
+
+### GLM Model
+
+[Setup: Creating New Measures for Top and Bottom 10% of defenders]{.underline}
+
+```{r}
+#top and bottom 10% of defenders 
+top_10_def <- quantile(nba.9624.logit$DEFRTG, 0.1,)
+bottom_10_def <- quantile(nba.9624.logit$DEFRTG, 0.9,)
+
+## creating new variables to the dataset 
+nba.9624.logit <- nba.9624.logit %>%
+          mutate(ABOVE_DEFNDR = ifelse(DEFRTG<mean(DEFRTG), 1, 0), ELITE = ifelse(DEFRTG<=top_10_def, 1, 0), BAD = ifelse(DEFRTG>=bottom_10_def, 1, 0))
+```
+
+**Logistic Regression (GLM)**
+
+*Based on Defensive Rating, taking into account a player's: Height (HGT), Weight (WGT), Wingspan to Height Ratio (BAR), Hand Size - Length x Width (PAN), Max Vertical (LPVERT), 3/4 Basketball Court Sprint (SPRINT), and Agility around the Basketball Key (LANE)*
+
+[Above Average Defenders]{.underline}
+
+```{r}
+#Logistic regression
+fit.average <- glm(ABOVE_DEFNDR ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.average)
+```
+
+[Elite Defenders]{.underline}
+
+```{r}
+#Logistic regression
+fit.elite <- glm(ELITE ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.elite)
+```
+
+[Bad Defenders]{.underline}
+
+```{r}
+#Logistic regression
+fit.bad <- glm(BAD ~ HGT + WGT + BAR + PAN + LPVERT + SPRINT, data = nba.9624.logit, family = "binomial")    
+
+summary(fit.bad)
+```
+
+### Scatterplots
+
+**Scatterplot Setup**
+
+```{r}
+#Probability of being an Above Average Defender
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_aboveavg = fitted(fit.average)) 
+```
+
+```{r}
+#Probability of being an Elite Defender
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_elite = fitted(fit.elite)) 
+```
+
+```{r}
+#Probability of being an Bad Defender
+nba.9624.logit <- nba.9624.logit %>% 
+  mutate(expected_bad = fitted(fit.bad)) 
+```
+
+```{r}
+# Reshape data into Unpivoted format
+nba.9624.unpivoted <- nba.9624.logit %>%
+  pivot_longer(cols = starts_with("expected_"), 
+               names_to = "category", 
+               values_to = "value")
+```
+
+
+**Scatterplots: Defence and Height**
+
+```{r}
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = HGT, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+   labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  labs(x = "Height (inches)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() +
+  ggtitle("Probability of Defender Type based on Height (HGT)")
+```
+
+
+**Scatterplots: Defence and Wingspan-to-Height Ratio (BAR)**
+
+```{r}
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = BAR, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite*", "expected_bad" = "Bad")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite*", "expected_bad" = "Bad")) +
+  labs(x = "BAR", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() +
+  ggtitle("Probability of Defender Type based on Wingspan-to-Height Ratio (BAR)")
+```
+
+**Scatterplots: Defence and Hand Size (PAN)**
+
+```{r}
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = PAN, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+    labels = c("expected_aboveavg" = "Above Average", "expected_elite" = "Elite", "expected_bad" = "Bad*")) +
+  labs(x = "PAN", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() +
+  ggtitle("Probability of Defender Type based on Hand Size (PAN)")
+```
+
+
+**Scatterplots: Defence and Max Vertical**
+```{r}
+# Create scaterplot
+ggplot(nba.9624.unpivoted, aes(x = LPVERT, y = value, color = category, shape = category)) +
+  geom_point() +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(
+    values = c("expected_aboveavg" = "blue", "expected_elite" = "green", "expected_bad" = "red"),
+    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  scale_shape_manual(
+    values = c("expected_aboveavg" = 16, "expected_elite" = 15, "expected_bad" = 17),
+    labels = c("expected_aboveavg" = "Above Average*", "expected_elite" = "Elite", "expected_bad" = "Bad")) +
+  labs(x = "Max Vertical (inches)", y = "Probability", color = "Defender Category", shape = "Defender Category") +
+  theme_minimal() +
+  ggtitle("Probability of Defender Type based on Max Vertical (LPVERT)")
+```
+
+## Part 2: How has the emphasis on those Physical Attributes On Average and for the NBA’s Top Defenders been changing over time?
+
+### Average:
+
+All Players, Not Top 10 % (2004 - 2023 except for PAN which is 2010 onwards).
+
+Acquire non-top 10% players:
+```{r}
+nba.90percent <- nba.9624.merged %>%
+  group_by(YEAR) %>%
+  filter(DEFRTG > quantile(DEFRTG, 0.1, na.rm = TRUE)) %>%
+  ungroup()
+```
+
+Calculate yearly averages for the remaining 90% of players:
+```{r}
+nba.yearly.averages <- nba.90percent %>%
+  group_by(YEAR) %>%
+  summarise(
+    avg_HGT = mean(HGT, na.rm = TRUE),
+    avg_BAR = mean(BAR, na.rm = TRUE),
+    avg_PAN = if (all(is.na(PAN))) NA else mean(PAN, na.rm = TRUE),
+    avg_LPVERT = mean(LPVERT, na.rm = TRUE)
+  )
+
+head(nba.yearly.averages)
+```
+
+Trend of Average Height for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.height.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
+
+library(ggplot2)
+
+ggplot(nba.height.trend, aes(x = YEAR, y = avg_HGT)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Height of NBA Players",
+    x = "Year",
+    y = "Average Height (avg_HGT)"
+  ) +
+  theme_minimal()
+```
+Trend of Average BAR for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.bar.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
+
+ggplot(nba.bar.trend, aes(x = YEAR, y = avg_BAR)) +
+  geom_line(color = "purple") +
+  geom_point(color = "purple") +
+  geom_smooth(method = "lm", se = FALSE, color = "purple", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Wingspan-to-Height Ratio (BAR) of NBA Players",
+    x = "Year",
+    y = "Average BAR"
+  ) +
+  theme_minimal()
+```
+
+Trend of Average PAN for Bottom 90% of players according to DEF RTG (Year 2010 onwards):
+```{r}
+nba.pan.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2010)
+
+ggplot(nba.pan.trend, aes(x = YEAR, y = avg_PAN)) +
+  geom_line(color = "green") +
+  geom_point(color = "green") +
+  geom_smooth(method = "lm", se = FALSE, color = "green", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Hand Size (PAN) of NBA Players",
+    x = "Year",
+    y = "Average PAN"
+  ) +
+  theme_minimal()
+```
+
+Trend of Average LPVERT for Bottom 90% of players according to DEF RTG (Year 2004 onwards):
+```{r}
+nba.lpvert.trend <- nba.yearly.averages %>%
+  filter(YEAR >= 2004)
+
+ggplot(nba.lpvert.trend, aes(x = YEAR, y = avg_LPVERT)) +
+  geom_line(color = "orange") +
+  geom_point(color = "orange") +
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Max Vertical (LPVERT) of NBA Players",
+    x = "Year",
+    y = "Average LPVERT"
+  ) +
+  theme_minimal()
+```
+
+
+## NEW PART:
+```{r}
+# Filter top 10% players based on DEFRTG
+nba.top10percent <- nba.9624.merged %>%
+  group_by(YEAR) %>%
+  filter(DEFRTG <= quantile(DEFRTG, 0.1, na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate yearly averages for the top 10% of players
+nba.yearly.averages.top10 <- nba.top10percent %>%
+  group_by(YEAR) %>%
+  summarise(
+    avg_HGT = mean(HGT, na.rm = TRUE),
+    avg_BAR = mean(BAR, na.rm = TRUE),
+    avg_PAN = if (all(is.na(PAN))) NA else mean(PAN, na.rm = TRUE),
+    avg_LPVERT = mean(LPVERT, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+# Add a column to each dataset to specify if it's top 10% or bottom 90%
+nba.yearly.averages <- nba.yearly.averages %>% mutate(group = "Bottom 90%")
+nba.yearly.averages.top10 <- nba.yearly.averages.top10 %>% mutate(group = "Top 10%")
+
+# Combine the datasets
+nba.yearly.averages.combined <- bind_rows(nba.yearly.averages, nba.yearly.averages.top10)
+
+```
+
+```{r}
+ggplot(nba.yearly.averages.combined %>% filter(YEAR >= 2004), aes(x = YEAR, y = avg_HGT, color = group)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Height (HGT) of NBA Players",
+    x = "Year",
+    y = "Average Height (avg_HGT)",
+    color = "Group"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(nba.yearly.averages.combined %>% filter(YEAR >= 2004), aes(x = YEAR, y = avg_BAR, color = group)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Wingspan-to-Height Ratio (BAR) of NBA Players",
+    x = "Year",
+    y = "Average BAR",
+    color = "Group"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(nba.yearly.averages.combined %>% filter(YEAR >= 2010), aes(x = YEAR, y = avg_PAN, color = group)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Hand Size (PAN) of NBA Players",
+    x = "Year",
+    y = "Average PAN",
+    color = "Group"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(nba.yearly.averages.combined %>% filter(YEAR >= 2004), aes(x = YEAR, y = avg_LPVERT, color = group)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Max Vertical (LPVERT) of NBA Players",
+    x = "Year",
+    y = "Average LPVERT",
+    color = "Group"
+  ) +
+  theme_minimal()
+
+```
+
+
+### NBA's Top Defenders:
+
+**Creating a Time Series measure of the Physical Attributes of the Top 25 Defenders each year (2004-2023):**
+```{r}
+nba.10percent <- nba.9624.merged %>%
+  mutate(YEAR = as.numeric(YEAR)) %>% 
+  filter(YEAR >= 2004) %>% 
+  group_by(YEAR) %>%
+  slice_max(order_by = -DEFRTG, prop = 0.10) %>%
+  ungroup()
+
+nba.10percent %>% 
+  select(PLAYER, YEAR, DEFRTG, HGT, WGT, BAR, PAN, LPVERT) %>% 
+  arrange(desc(YEAR)) %>% 
+  head(5)
+```
+
+[20 Year "Height" Trend]{.underline}
+
+```{r}
+ggplot(nba.10percent, aes(x = YEAR, y = HGT, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(68, 90)) + 
+  geom_point() + 
+  theme_minimal() +
+  ggtitle("Time Trend of Height for the Top 10% of NBA Defenders")
+```
+
+[20 Year "BAR" Trend]{.underline}
+
+```{r}
+ggplot(nba.10percent, aes(x = YEAR, y = BAR, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(0.95, 1.15)) +   
+  geom_point() +
+  theme_minimal() +
+  ggtitle("Time Trend of Plus Wingspan for the Top 10% of NBA Defenders")
+```
+
+[10 Year "PAN" Trend]{.underline}
+
+(Note: Hand Measurements only started in 2010, so we shrink our visualization)
+
+```{r}
+ggplot(nba.10percent, aes(x = YEAR, y = PAN, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(60, 120)) + 
+  scale_x_continuous(limits = c(2010, 2024)) +
+  geom_point() + 
+  theme_minimal() +
+  ggtitle("Time Trend of Hand Size for the Top 10% of NBA Defenders")
+```
+
+[20 Year "LPVERT" Trend]{.underline}
+
+```{r}
+ggplot(nba.10percent, aes(x = YEAR, y = LPVERT, color = DEFRTG)) + 
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  scale_y_continuous(limits = c(25, 45)) + 
+  geom_point() + 
+  theme_minimal() +
+  ggtitle("Time Trend of Max Vertical for the Top 10% of NBA Defenders")
+```
+
+### Invidiaul Defensive Rating:
+
+**Creating a Time Series measure of Average Individual Defensive Rating each year (2004-2023):**
+
+```{r}
+nba.avgdefrtg  <- nba.9624.player.adv.def %>%
+  group_by(YEAR) %>%
+  summarise(
+    avg_DEFRTG = mean(DEFRTG, na.rm = TRUE),
+      )
+
+nba.avgdefrtg <- nba.avgdefrtg %>%
+  filter(YEAR >= 2004)
+
+head(nba.avgdefrtg)
+```
+
+**Time Trend of Average Individual Defensive Rating:**
+```{r}
+library(ggplot2)
+
+ggplot(nba.avgdefrtg, aes(x = YEAR, y = avg_DEFRTG)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", se = FALSE, color = "blue", linetype = "dashed") + 
+  labs(
+    title = "Time Trend of Average Defensive Rating of Individual NBA Players",
+    x = "Year",
+    y = "Average Individual Defensive Rating"
+  ) +
+  theme_minimal()
+```
